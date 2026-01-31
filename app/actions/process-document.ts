@@ -4,28 +4,31 @@ import { db } from "@/lib/db";
 import { openai } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Server Action to archive a document URL by analyzing it with AI 
+ * and saving the results to the database.
+ */
 export async function archiveDocument(fileUrl: string) {
   try {
-    // 1. Request AI Analysis from DeepSeek
+    // 1. Request AI Analysis from OpenRouter (using a free model)
     const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
+      model: "google/gemini-2.0-flash-exp:free",
       messages: [
         { 
           role: "system", 
-          content: "You are a helpful assistant that categorizes documents. Respond in the format 'Category: Summary'. Categories must be one of: Receipt, ID, or Work." 
+          content: "You are a helpful assistant that categorizes documents. Respond strictly in the format 'Category: Summary'. Categories must be one of: Receipt, ID, or Work." 
         },
         { 
           role: "user", 
           content: `Please analyze this document URL: ${fileUrl}` 
         }
       ],
-      temperature: 0.3, // Keeps the response consistent
+      temperature: 0.3,
     });
 
     const aiText = completion.choices[0].message.content || "Uncategorized: No summary available.";
     
     // 2. Extract Category and Summary logic
-    // Expected format: "Receipt: This is a store purchase for electronics."
     let category = "General";
     let summary = aiText;
 
@@ -35,7 +38,7 @@ export async function archiveDocument(fileUrl: string) {
       summary = parts.slice(1).join(":").trim();
     }
 
-    // 3. Save to Neon Database via Prisma
+    // 3. Save to Neon Database via the db singleton
     await db.document.create({
       data: {
         url: fileUrl,
@@ -44,7 +47,7 @@ export async function archiveDocument(fileUrl: string) {
       },
     });
 
-    // 4. Refresh the UI
+    // 4. Refresh the page data to show the new entry
     revalidatePath("/");
     
     return { success: true };
@@ -52,11 +55,11 @@ export async function archiveDocument(fileUrl: string) {
   } catch (error: any) {
     console.error("Archive Error:", error);
     
-    // Fallback: Save the document even if the AI fails
+    // Fallback: Still save the URL to the database even if the AI fails
     await db.document.create({
       data: {
         url: fileUrl,
-        summary: "AI summary failed. Please check your API quota.",
+        summary: "AI analysis failed. Please check your OpenRouter quota or connection.",
         category: "Error",
       },
     });

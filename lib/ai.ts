@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 
 export const openai = new OpenAI({
-  // Add this line to redirect the request to DeepSeek
-  baseURL: "https://api.deepseek.com", 
-  apiKey: process.env.DEEPSEEK_API_KEY 
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  // OpenRouter requires these extra headers for their rankings
+  defaultHeaders: {
+    "HTTP-Referer": "http://localhost:3000", // Your site URL
+    "X-Title": "Smart Vault", // Your site Name
+  }
 });
