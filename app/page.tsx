@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { archiveDocument } from "./actions/process-document";
 import { DocumentCard } from "@/components/document-card";
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const docs = await db.document.findMany({ orderBy: { createdAt: "desc" } });
