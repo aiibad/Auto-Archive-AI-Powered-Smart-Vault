@@ -1,8 +1,11 @@
 import { 
-  FileText, Receipt, IdCard, Briefcase, 
-  ExternalLink, Calendar, Trash2 
+  FileText, 
+  Receipt, 
+  IdCard, 
+  Briefcase, 
+  ExternalLink, 
+  Calendar 
 } from "lucide-react";
-import { deleteDocument } from "@/app/actions/process-document";
 
 export function DocumentCard({ doc }: { doc: any }) {
   const getCategoryStyles = (category: string) => {
@@ -38,23 +41,6 @@ export function DocumentCard({ doc }: { doc: any }) {
 
   return (
     <div className="group relative bg-white border border-slate-200 rounded-3xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-      
-      {/* --- DELETE BUTTON --- */}
-      <form 
-        action={async () => {
-          "use server";
-          await deleteDocument(doc.id);
-        }}
-        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-      >
-        <button 
-          className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
-          title="Delete document"
-        >
-          <Trash2 size={16} />
-        </button>
-      </form>
-
       <div className="flex justify-between items-start mb-4">
         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold ${style.color}`}>
           {style.icon}
@@ -71,7 +57,7 @@ export function DocumentCard({ doc }: { doc: any }) {
       </h3>
       
       <p className="text-slate-500 text-xs leading-relaxed mb-6 line-clamp-3">
-        Securely analyzed and archived.
+        Automatically processed and stored in your secure vault.
       </p>
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-50">
@@ -81,7 +67,7 @@ export function DocumentCard({ doc }: { doc: any }) {
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-xs font-bold text-slate-900 hover:text-blue-600 transition-colors"
         >
-          <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-blue-100 transition-colors">
+          <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
             <ExternalLink size={14} />
           </div>
           View Document
