@@ -62,9 +62,9 @@ export default async function Page({
           </div>
         </header>
 
-        {/* UPLOAD ZONE */}
+        {/* UPLOAD ZONE - Fixed Type Argument */}
         <section className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 mb-12">
-          <UploadDropzone<OurFileRouter>
+          <UploadDropzone<OurFileRouter, "docUploader">
             endpoint="docUploader"
             onClientUploadComplete={async (res) => {
               if (res?.[0]) {
