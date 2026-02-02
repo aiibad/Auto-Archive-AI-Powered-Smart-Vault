@@ -1,3 +1,4 @@
+import "@uploadthing/react/styles.css"; // Add this line
 import "./globals.css"; // <-- ADD THIS LINE
 import type { Metadata } from "next";
 
