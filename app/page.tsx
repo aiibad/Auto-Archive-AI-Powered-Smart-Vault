@@ -22,7 +22,7 @@ export default async function Page({
 }) {
   const { category, query } = await searchParams;
 
-  // 1. Fetch filtered documents based on URL parameters
+  // 1. Fetch filtered documents based on current URL parameters
   const docs = await db.document.findMany({
     where: {
       AND: [
@@ -33,13 +33,14 @@ export default async function Page({
     orderBy: { createdAt: "desc" },
   });
 
-  // 2. Fetch counts for the Sidebar Badges
+  // 2. Fetch real-time counts for the Sidebar Badges
   const allCount = await db.document.count();
   const categoryCounts = await db.document.groupBy({
     by: ['category'],
     _count: { category: true },
   });
 
+  // Helper to safely get the count for a specific category name
   const getCount = (name: string) => {
     return categoryCounts.find(c => c.category?.toLowerCase() === name.toLowerCase())?._count.category || 0;
   };
@@ -61,7 +62,7 @@ export default async function Page({
           <span className="font-bold text-xl tracking-tight">Vault.ai</span>
         </div>
 
-        {/* SEARCH BAR */}
+        {/* SEARCH BAR: Updates query param in URL */}
         <div className="mb-8">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Search Vault</p>
           <form action="/" method="GET" className="relative">
@@ -75,7 +76,7 @@ export default async function Page({
           </form>
         </div>
 
-        {/* CATEGORIES WITH BADGES */}
+        {/* CATEGORIES WITH DYNAMIC BADGES */}
         <nav className="flex-1 space-y-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Categories</p>
           
@@ -90,7 +91,7 @@ export default async function Page({
           {categories.map((cat) => (
             <Link 
               key={cat.name}
-              href={`/?category=${cat.name}`}
+              href={`/?category=${cat.name}${query ? `&query=${query}` : ''}`}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl font-medium transition-all ${category === cat.name ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
             >
               <div className="flex items-center gap-3">{cat.icon} <span>{cat.name}s</span></div>
@@ -101,7 +102,7 @@ export default async function Page({
           ))}
         </nav>
 
-        {/* CLEAR FILTERS */}
+        {/* CLEAR FILTERS BUTTON */}
         {(category || query) && (
           <Link href="/" className="mt-4 flex items-center justify-center gap-2 text-[10px] font-black text-red-500 hover:text-red-600 p-2 border border-red-100 rounded-xl bg-red-50/50 uppercase tracking-widest">
             <X size={14} /> Clear Filters

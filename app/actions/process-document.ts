@@ -6,36 +6,33 @@ import { revalidatePath } from "next/cache";
 
 export async function archiveDocument(fileUrl: string) {
   try {
-    // UPDATED PROMPT: Giving the AI better instructions for file analysis
     const completion = await openai.chat.completions.create({
-      model: "meta-llama/llama-3.3-70b-instruct:free",
+      // 1. Updated to use the paid DeepSeek model
+      model: "deepseek-chat", 
       messages: [
         { 
           role: "system", 
-          content: "You are a professional document analyzer. Review the document URL provided and categorize it as 'Receipt', 'ID', or 'Work'. Respond STRICTLY in the format: 'Category: Brief Summary'." 
+          content: "You are a document analyzer. Categorize the file as Receipt, ID, or Work and provide a 1-sentence summary. Respond strictly in JSON format." 
         },
         { role: "user", content: `Analyze this document: ${fileUrl}` }
       ],
+      // 2. Enable JSON Mode for better reliability
+      response_format: { type: "json_object" },
       temperature: 0.1,
     });
 
-    const aiText = completion.choices[0].message.content || "General: No summary available.";
-    let category = "General";
-    let summary = aiText;
+    // 3. Robust JSON parsing
+    const content = JSON.parse(completion.choices[0].message.content || "{}");
+    const category = content.category || "General";
+    const summary = content.summary || "Document archived successfully.";
 
-    if (aiText.includes(":")) {
-      const parts = aiText.split(":");
-      const extractedCat = parts[0].trim();
-      const validCategories = ["Receipt", "ID", "Work"];
-      if (validCategories.includes(extractedCat)) {
-        category = extractedCat;
-        summary = parts.slice(1).join(":").trim();
-      }
-    }
-
-    // Save success record
+    // 4. Save to Database
     await db.document.create({
-      data: { url: fileUrl, summary, category },
+      data: { 
+        url: fileUrl, 
+        summary: summary, 
+        category: category 
+      },
     });
 
     revalidatePath("/");
@@ -43,9 +40,13 @@ export async function archiveDocument(fileUrl: string) {
   } catch (error: any) {
     console.error("Archive Error:", error);
     
-    // FALLBACK: Don't let the UI break; save it as 'General' if the AI fails
+    // Fallback: Save as 'General' so the file isn't lost, even if AI fails
     await db.document.create({
-      data: { url: fileUrl, summary: "Document archived successfully (AI analysis was unavailable).", category: "General" },
+      data: { 
+        url: fileUrl, 
+        summary: "Document archived (AI analysis unavailable).", 
+        category: "General" 
+      },
     });
     
     revalidatePath("/");
