@@ -4,41 +4,38 @@ import { db } from "@/lib/db";
 import { openai } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 
-// FIX: Use require for pdf-parse to avoid Turbopack/ESM build errors
-const pdf = require("pdf-parse");
+// FIX: Standard import for pdf-parse that works in Next.js Server Actions
+import pdf from "pdf-parse/lib/pdf-parse";
 
-/**
- * ARCHIVE: Processes document content via AI and saves to database.
- */
 export async function archiveDocument(fileUrl: string, base64Data?: string) {
   try {
     let contentToAnalyze = "";
 
-    // 1. CONTENT EXTRACTION LOGIC
+    // 1. PDF TEXT EXTRACTION
     if (fileUrl.toLowerCase().endsWith(".pdf")) {
-      setStatusMessage("Extracting PDF text...");
       const response = await fetch(fileUrl);
       const buffer = await response.arrayBuffer();
-      // pdf-parse works with Buffers
+      
+      // This extracts the real text so the AI doesn't hallucinate IDs
       const data = await pdf(Buffer.from(buffer));
-      contentToAnalyze = data.text.trim().substring(0, 3000);
+      contentToAnalyze = data.text.trim().substring(0, 3000); 
     }
 
     const messages: any[] = [
       { 
         role: "system", 
         content: `You are a professional document analyzer. 
-        Categorize the document into: Receipt, ID, or Work.
-        - ID: Gov-issued cards/passports.
-        - Receipt: Transaction slips/invoices.
-        - Work: Q&A, reports, resumes, or generic docs.
+        Categorize into: Receipt, ID, or Work.
+        - ID: Gov-issued cards, passports.
+        - Receipt: Bills, invoices.
+        - Work: Everything else, including practice papers, reports, or Q&A.
         
         Provide a 2-3 sentence summary based ONLY on the actual text provided. 
-        Respond ONLY in JSON format with keys "category" and "summary".` 
+        Respond ONLY in JSON format: { "category": "...", "summary": "..." }` 
       }
     ];
 
-    // 2. CHOOSE ANALYSIS MODE
+    // 2. SEND CONTENT TO AI
     if (base64Data && !fileUrl.toLowerCase().endsWith(".pdf")) {
       messages.push({
         role: "user",
@@ -51,26 +48,23 @@ export async function archiveDocument(fileUrl: string, base64Data?: string) {
       messages.push({ 
         role: "user", 
         content: contentToAnalyze 
-          ? `Analyze this text content: ${contentToAnalyze}`
+          ? `Analyze this content: ${contentToAnalyze}` 
           : `Analyze this document: ${fileUrl}` 
       });
     }
 
-    // 3. AI COMPLETION
     const completion = await openai.chat.completions.create({
-      model: "deepseek-chat", 
-      messages: messages,
+      model: "deepseek-chat",
+      messages,
       response_format: { type: "json_object" },
       temperature: 0.1,
     });
 
     const aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
     
-    // 4. DATABASE SYNC
-    const validCategories = ["Receipt", "ID", "Work"];
-    const finalCategory = validCategories.includes(aiResponse.category) 
-      ? aiResponse.category 
-      : "Work";
+    // 3. DATABASE SYNC
+    const valid = ["Receipt", "ID", "Work"];
+    const finalCategory = valid.includes(aiResponse.category) ? aiResponse.category : "Work";
 
     await db.document.create({
       data: { 
@@ -85,20 +79,12 @@ export async function archiveDocument(fileUrl: string, base64Data?: string) {
 
   } catch (error: any) {
     console.error("Archive Error:", error);
-    await db.document.create({
-      data: { 
-        url: fileUrl, 
-        summary: "Analysis failed. Content could not be parsed.", 
-        category: "General" 
-      },
-    });
-    revalidatePath("/");
     return { success: false, error: error.message };
   }
 }
 
 /**
- * DELETE: Removes a document record.
+ * DELETE: Required for your DocumentCard component
  */
 export async function deleteDocument(id: string) {
   try {
@@ -106,12 +92,6 @@ export async function deleteDocument(id: string) {
     revalidatePath("/");
     return { success: true };
   } catch (error: any) {
-    console.error("Delete Error:", error);
     return { success: false, error: error.message };
   }
-}
-
-// Helper to avoid build-time errors if called on client
-function setStatusMessage(msg: string) {
-  console.log(`[Status]: ${msg}`);
 }
