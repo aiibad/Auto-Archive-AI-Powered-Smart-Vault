@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { openai } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 // Standard import now works because of the serverExternalPackages config
-import pdf from "pdf-parse";
+import * as pdf from "pdf-parse";
 
 export async function archiveDocument(fileUrl: string, base64Data?: string) {
   try {
