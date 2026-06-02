@@ -46,7 +46,7 @@ The application utilizes a **Serverless-First** approach to ensure scalability a
 
 ### Prerequisites
 - Node.js 18+ 
-- A Neon.tech (PostgreSQL) account
+- A Neon. tech (PostgreSQL) account
 - An OpenAI API Key
 
 ### Setup Steps
